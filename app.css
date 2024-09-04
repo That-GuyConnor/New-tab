@@ -44,9 +44,7 @@
   --sfg: #2c292e; /* Secondary Foreground color */
 
   /* Image background  */
-  --imgcol: linear-gradient(
-    rgba(0, 0, 0, 1),
-    rgba(0, 0, 0, 1)
+  
   ); /* Filter color */
 }
 
