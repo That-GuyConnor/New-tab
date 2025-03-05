@@ -13,6 +13,8 @@ const CONFIG = {
 	// General
 	name: 'Connor Barton',
 	imageBackground: true,
+	useAPODBackground: true, // New option to use Astronomy Picture of the Day
+	defaultBackground: 'https://apod.nasa.gov/apod/image/2409/Bat_Taivalnaa_4200.jpg', // Fallback background
 	openInNewTab: true,
 	twelveHourFormat: false,
 
