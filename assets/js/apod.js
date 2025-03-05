@@ -21,21 +21,41 @@ async function fetchAPODImage() {
   
   try {
     console.log('Fetching new APOD image');
-    // Use a CORS proxy if you're having CORS issues
-    // const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+    
+    // Use a CORS proxy to avoid CORS issues
+    // You may need to replace this with a working CORS proxy
+    const corsProxyUrl = 'https://corsproxy.io/?';
     const apodUrl = 'https://apod.nasa.gov/apod/astropix.html';
     
-    // Fetch the APOD page HTML
-    const response = await fetch(apodUrl);
+    // Fetch the APOD page HTML through the CORS proxy
+    const response = await fetch(corsProxyUrl + encodeURIComponent(apodUrl));
     const html = await response.text();
     
-    // Extract the image URL using a simple regex pattern
-    // This looks for an image tag in the HTML
-    const imgRegex = /<img src="(image\/.*?)".*?>/i;
-    const match = html.match(imgRegex);
+    // Log the first part of the response for debugging
+    console.log('Response preview:', html.substring(0, 500));
+    
+    // Extract the image URL using a more flexible regex pattern
+    // This pattern looks for image tags with various attributes
+    const imgRegex = /<img\s+[^>]*src=["']([^"']*\/image\/[^"']*)["'][^>]*>/i;
+    let match = html.match(imgRegex);
+    
+    // If the primary regex fails, try a broader pattern
+    if (!match) {
+      const backupRegex = /<a\s+[^>]*href=["']([^"']*\.jpg)["'][^>]*>/i;
+      match = html.match(backupRegex);
+    }
     
     if (match && match[1]) {
-      const imageUrl = 'https://apod.nasa.gov/apod/' + match[1];
+      let imageUrl = match[1];
+      
+      // Make sure the URL is absolute
+      if (imageUrl.startsWith('/')) {
+        imageUrl = 'https://apod.nasa.gov' + imageUrl;
+      } else if (!imageUrl.startsWith('http')) {
+        imageUrl = 'https://apod.nasa.gov/apod/' + imageUrl;
+      }
+      
+      console.log('Found APOD image URL:', imageUrl);
       
       // Cache the image URL and timestamp
       localStorage.setItem(CACHE_KEY, JSON.stringify({
@@ -46,8 +66,36 @@ async function fetchAPODImage() {
       setBackgroundImage(imageUrl);
     } else {
       console.error('Could not find image in APOD page');
-      // Fall back to the default background or last successful image
-      fallbackToDefaultBackground();
+      // Try a direct approach - often the image is at this standard URL pattern
+      const today = new Date();
+      const year = today.getFullYear().toString().substring(2); // Get last 2 digits of year
+      const month = String(today.getMonth() + 1).padStart(2, '0');
+      const day = String(today.getDate()).padStart(2, '0');
+      
+      // Try the standard APOD URL pattern for today's image
+      const directImageUrl = `https://apod.nasa.gov/apod/image/${year}${month}/${year}${month}${day}.jpg`;
+      console.log('Trying direct URL pattern:', directImageUrl);
+      
+      // Test if the image exists
+      try {
+        const testImg = new Image();
+        testImg.onload = function() {
+          console.log('Direct URL image found');
+          localStorage.setItem(CACHE_KEY, JSON.stringify({
+            imageUrl: directImageUrl,
+            timestamp: now
+          }));
+          setBackgroundImage(directImageUrl);
+        };
+        testImg.onerror = function() {
+          console.log('Direct URL image not found, falling back to default');
+          fallbackToDefaultBackground();
+        };
+        testImg.src = directImageUrl;
+      } catch (err) {
+        console.error('Error testing direct image URL:', err);
+        fallbackToDefaultBackground();
+      }
     }
   } catch (error) {
     console.error('Error fetching APOD:', error);
@@ -61,6 +109,11 @@ function setBackgroundImage(url) {
   
   // Make sure image background is enabled
   document.body.classList.add('withImageBackground');
+  
+  // Also add a background image directly to the body as a fallback method
+  document.body.style.backgroundImage = `var(--imgcol), url('${url}')`;
+  document.body.style.backgroundSize = 'cover';
+  document.body.style.backgroundPosition = 'center';
 }
 
 function fallbackToDefaultBackground() {
