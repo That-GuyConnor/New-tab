@@ -38,8 +38,16 @@ themeToggle.addEventListener('click', () => {
 	}
 });
 
+// Apply background based on configuration
 if (CONFIG.imageBackground) {
-	document.body.classList.add('withImageBackground');
+	if (CONFIG.useAPODBackground) {
+		// The APOD background is handled by the apod.js script
+		// Just ensure the class is added for styling
+		document.body.classList.add('withImageBackground');
+	} else {
+		// Use the regular background specified in CSS
+		document.body.classList.add('withImageBackground');
+	}
 }
 
 if (CONFIG.changeThemeByOS && CONFIG.autoChangeTheme) {
